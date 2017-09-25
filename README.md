@@ -38,7 +38,7 @@ Options:
   -s | --system <file>      The path of the associated SYSTEM hive, required when using the pwdump option.
   -p | --pwdump <file>      The path to output hashes in pwdump format.
   -u | --users-csv <file>   The path to output user details in CSV format.
-  --history-hashes          Include hitory hashes in the pdwump output.
+  --history-hashes          Include history hashes in the pdwump output.
   --dump-reversible <file>  The path to output clear text passwords, if reversible encryption is enabled.
   --wordlist                The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.
   --base-date <yyyyMMdd>    Specifies a custom date to be used as the base date in statistics. The last modified date of the NTDS file is used by default.
@@ -48,7 +48,7 @@ WARNING: Use of the --pwdump option will result in decryption of password hashes
 Sensitive information will be stored in memory and on disk. Ensure the pwdump file is handled appropriately
 ```
 
-For example, the following command will display statistics, ouput a file `pwdump.txt` containing password hashes, and output a file `users.csv` containing details for each user account.
+For example, the following command will display statistics, output a file `pwdump.txt` containing password hashes, and output a file `users.csv` containing details for each user account.
 
 ```
 ntdsaudit ntds.dit -s SYSTEM -p pwdump.txt -u users.csv

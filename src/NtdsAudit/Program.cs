@@ -45,7 +45,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             var systemHivePath = commandLineApplication.Option("-s | --system <file>", "The path of the associated SYSTEM hive, required when using the pwdump option.", CommandOptionType.SingleValue);
             var pwdumpPath = commandLineApplication.Option("-p | --pwdump <file>", "The path to output hashes in pwdump format.", CommandOptionType.SingleValue);
             var usersCsvPath = commandLineApplication.Option("-u | --users-csv <file>", "The path to output user details in CSV format.", CommandOptionType.SingleValue);
-            var includeHistoryHashes = commandLineApplication.Option("--history-hashes", "Include hitory hashes in the pdwump output.", CommandOptionType.NoValue);
+            var includeHistoryHashes = commandLineApplication.Option("--history-hashes", "Include history hashes in the pdwump output.", CommandOptionType.NoValue);
             var dumpReversiblePath = commandLineApplication.Option("--dump-reversible <file>", "The path to output clear text passwords, if reversible encryption is enabled.", CommandOptionType.SingleValue);
             var wordlistPath = commandLineApplication.Option("--wordlist", "The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.", CommandOptionType.SingleValue);
             var baseDate = commandLineApplication.Option("--base-date <yyyyMMdd>", "Specifies a custom date to be used as the base date in statistics. The last modified date of the NTDS file is used by default.", CommandOptionType.SingleValue);
