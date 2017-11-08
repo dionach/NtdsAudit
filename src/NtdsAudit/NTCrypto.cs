@@ -241,6 +241,12 @@
 
             var properties = new Dictionary<string, byte[]>();
 
+            // Check the property signature is equal to 0x50, and if not assume the structure is corrupt.
+            if (decryptedBlob.Length < 110 || BitConverter.ToUInt16(decryptedBlob, 108) != 0x50)
+            {
+                return properties;
+            }
+
             // If there are zero USER_PROPERTY elements, the length will be 0x6F
             if (decryptedBlob.Length == 0x6F)
             {
