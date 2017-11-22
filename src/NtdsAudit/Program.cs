@@ -173,9 +173,8 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                 var computers = ntdsAudit.Computers.Where(x => x.DomainSid.Equals(domain.Sid)).ToList();
                 var totalComputersCount = computers.Count;
                 var activeComputersCount = computers.Count(x => !x.Disabled);
-                var disabledComputersCount = totalComputersCount - activeComputersCount;
 
-                WriteStatistic("Disabled computer accounts", disabledComputersCount, totalComputersCount);
+                WriteStatistic("Active computer accounts", activeComputersCount, totalComputersCount);
                 Console.WriteLine();
             }
         }
