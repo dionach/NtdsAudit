@@ -13,7 +13,7 @@
     /// </summary>
     internal static class Program
     {
-        private static int GetPercentage(int actual, int maximum) => (int)Math.Round(((double)100 / maximum) * actual);
+        private static double GetPercentage(int actual, int maximum) => Math.Round(((double)100 / maximum) * actual, 1);
 
         [Conditional("DEBUG")]
         private static void LaunchDebugger()
