@@ -616,6 +616,7 @@
                         Dn = row.Dn,
                         DomainSid = row.Sid.AccountDomainSid,
                         Disabled = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE) == (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE,
+                        LastLogon = row.LastLogon ?? DateTime.Parse("01.01.1601 00:00:00", CultureInfo.InvariantCulture),
                     };
                     computers.Add(computerInfo);
                 }
