@@ -1,5 +1,6 @@
 ﻿namespace NtdsAudit
 {
+    using Microsoft.Isam.Esent.Interop;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -10,7 +11,6 @@
     using System.Security.Principal;
     using System.Text;
     using System.Text.RegularExpressions;
-    using Microsoft.Isam.Esent.Interop;
 
     /// <summary>
     /// Processes an NTDS database.
@@ -982,7 +982,19 @@
                 {
                     if (row.EncryptedLmHash != null)
                     {
-                        row.LmHash = ByteArrayToHexString(NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedLmHash, row.Rid));
+                        try
+                        {
+                            row.LmHash = ByteArrayToHexString(NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedLmHash, row.Rid));
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ShowDebugOutput)
+                            {
+                                ConsoleEx.WriteDebug($"Failed to decrypt LM hash for '{row.SamAccountName}' with error: {ex.Message}");
+                            }
+
+                            row.LmHash = EMPTY_LM_HASH;
+                        }
                     }
                     else
                     {
@@ -991,7 +1003,19 @@
 
                     if (row.EncryptedNtHash != null)
                     {
-                        row.NtHash = ByteArrayToHexString(NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedNtHash, row.Rid));
+                        try
+                        {
+                            row.NtHash = ByteArrayToHexString(NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedNtHash, row.Rid));
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ShowDebugOutput)
+                            {
+                                ConsoleEx.WriteDebug($"Failed to decrypt NT hash for '{row.SamAccountName}' with error: {ex.Message}");
+                            }
+
+                            row.NtHash = EMPTY_LM_HASH;
+                        }
                     }
                     else
                     {
@@ -1004,7 +1028,18 @@
                         {
                             var hashStrings = new List<string>();
 
-                            var decryptedHashes = NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedLmHistory, row.Rid);
+                            var decryptedHashes = new byte[0];
+                            try
+                            {
+                                decryptedHashes = NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedLmHistory, row.Rid);
+                            }
+                            catch (Exception ex)
+                            {
+                                if (ShowDebugOutput)
+                                {
+                                    ConsoleEx.WriteDebug($"Failed to decrypt LM history hashes for '{row.SamAccountName}' with error: {ex.Message}");
+                                }
+                            }
 
                             // The first hash is the same as the current hash, so skip it
                             for (var i = 16; i < decryptedHashes.Length; i += 16)
@@ -1027,7 +1062,18 @@
                         {
                             var hashStrings = new List<string>();
 
-                            var decryptedHashes = NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedNtHistory, row.Rid);
+                            var decryptedHashes = new byte[0];
+                            try
+                            {
+                                decryptedHashes = NTCrypto.DecryptHashes(decryptedPekList, row.EncryptedNtHistory, row.Rid);
+                            }
+                            catch (Exception ex)
+                            {
+                                if (ShowDebugOutput)
+                                {
+                                    ConsoleEx.WriteDebug($"Failed to decrypt LM history hashes for '{row.SamAccountName}' with error: {ex.Message}");
+                                }
+                            }
 
                             // The first hash is the same as the current hash, so skip it
                             for (var i = 16; i < decryptedHashes.Length; i += 16)
@@ -1041,7 +1087,17 @@
 
                     if (row.SupplementalCredentialsBlob != null)
                     {
-                        row.SupplementalCredentials = NTCrypto.DecryptSupplementalCredentials(decryptedPekList, row.SupplementalCredentialsBlob);
+                        try
+                        {
+                            row.SupplementalCredentials = NTCrypto.DecryptSupplementalCredentials(decryptedPekList, row.SupplementalCredentialsBlob);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ShowDebugOutput)
+                            {
+                                ConsoleEx.WriteDebug($"Failed to decrypt supplemental credentials for '{row.SamAccountName}' with error: {ex.Message}");
+                            }
+                        }
                     }
                 }
             }
