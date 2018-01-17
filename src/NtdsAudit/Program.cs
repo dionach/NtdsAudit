@@ -1,12 +1,12 @@
 ﻿namespace NtdsAudit
 {
+    using Microsoft.Extensions.CommandLineUtils;
     using System;
     using System.Diagnostics;
     using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using Microsoft.Extensions.CommandLineUtils;
 
     /// <summary>
     /// The application entry point class.
@@ -82,6 +82,24 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                 else if (pwdumpPath.HasValue() && !File.Exists(systemHivePath.Value()))
                 {
                     ConsoleEx.WriteError($"SYSTEM file \"{systemHivePath.Value()}\" does not exist.");
+                    argumentsValid = false;
+                }
+
+                if (pwdumpPath.HasValue() && !Directory.Exists(Path.GetDirectoryName(pwdumpPath.Value())))
+                {
+                    ConsoleEx.WriteError($"pwdump output directory \"{Path.GetDirectoryName(pwdumpPath.Value())}\" does not exist.");
+                    argumentsValid = false;
+                }
+
+                if (usersCsvPath.HasValue() && !Directory.Exists(Path.GetDirectoryName(usersCsvPath.Value())))
+                {
+                    ConsoleEx.WriteError($"Users CSV output directory \"{Path.GetDirectoryName(usersCsvPath.Value())}\" does not exist.");
+                    argumentsValid = false;
+                }
+
+                if (dumpReversiblePath.HasValue() && !Directory.Exists(Path.GetDirectoryName(dumpReversiblePath.Value())))
+                {
+                    ConsoleEx.WriteError($"Dump Reverible output directory \"{Path.GetDirectoryName(dumpReversiblePath.Value())}\" does not exist.");
                     argumentsValid = false;
                 }
 
