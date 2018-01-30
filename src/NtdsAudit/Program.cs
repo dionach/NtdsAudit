@@ -85,19 +85,19 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                     argumentsValid = false;
                 }
 
-                if (pwdumpPath.HasValue() && !Directory.Exists(Path.GetDirectoryName(pwdumpPath.Value())))
+                if (pwdumpPath.HasValue() && !string.IsNullOrEmpty(Path.GetDirectoryName(pwdumpPath.Value())) && !Directory.Exists(Path.GetDirectoryName(pwdumpPath.Value())))
                 {
                     ConsoleEx.WriteError($"pwdump output directory \"{Path.GetDirectoryName(pwdumpPath.Value())}\" does not exist.");
                     argumentsValid = false;
                 }
 
-                if (usersCsvPath.HasValue() && !Directory.Exists(Path.GetDirectoryName(usersCsvPath.Value())))
+                if (usersCsvPath.HasValue() && !string.IsNullOrEmpty(Path.GetDirectoryName(usersCsvPath.Value())) && !Directory.Exists(Path.GetDirectoryName(usersCsvPath.Value())))
                 {
                     ConsoleEx.WriteError($"Users CSV output directory \"{Path.GetDirectoryName(usersCsvPath.Value())}\" does not exist.");
                     argumentsValid = false;
                 }
 
-                if (dumpReversiblePath.HasValue() && !Directory.Exists(Path.GetDirectoryName(dumpReversiblePath.Value())))
+                if (dumpReversiblePath.HasValue() && !string.IsNullOrEmpty(Path.GetDirectoryName(dumpReversiblePath.Value())) && !Directory.Exists(Path.GetDirectoryName(dumpReversiblePath.Value())))
                 {
                     ConsoleEx.WriteError($"Dump Reverible output directory \"{Path.GetDirectoryName(dumpReversiblePath.Value())}\" does not exist.");
                     argumentsValid = false;
