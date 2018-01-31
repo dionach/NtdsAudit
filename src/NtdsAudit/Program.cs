@@ -45,6 +45,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             var systemHivePath = commandLineApplication.Option("-s | --system <file>", "The path of the associated SYSTEM hive, required when using the pwdump option.", CommandOptionType.SingleValue);
             var pwdumpPath = commandLineApplication.Option("-p | --pwdump <file>", "The path to output hashes in pwdump format.", CommandOptionType.SingleValue);
             var usersCsvPath = commandLineApplication.Option("-u | --users-csv <file>", "The path to output user details in CSV format.", CommandOptionType.SingleValue);
+            var computersCsvPath = commandLineApplication.Option("-c | --computers-csv <file>", "The path to output computer details in CSV format.", CommandOptionType.SingleValue);
             var includeHistoryHashes = commandLineApplication.Option("--history-hashes", "Include history hashes in the pdwump output.", CommandOptionType.NoValue);
             var dumpReversiblePath = commandLineApplication.Option("--dump-reversible <file>", "The path to output clear text passwords, if reversible encryption is enabled.", CommandOptionType.SingleValue);
             var wordlistPath = commandLineApplication.Option("--wordlist", "The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.", CommandOptionType.SingleValue);
@@ -97,6 +98,12 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                     argumentsValid = false;
                 }
 
+                if (computersCsvPath.HasValue() && !string.IsNullOrEmpty(Path.GetDirectoryName(computersCsvPath.Value())) && !Directory.Exists(Path.GetDirectoryName(computersCsvPath.Value())))
+                {
+                    ConsoleEx.WriteError($"Computers CSV output directory \"{Path.GetDirectoryName(computersCsvPath.Value())}\" does not exist.");
+                    argumentsValid = false;
+                }
+
                 if (dumpReversiblePath.HasValue() && !string.IsNullOrEmpty(Path.GetDirectoryName(dumpReversiblePath.Value())) && !Directory.Exists(Path.GetDirectoryName(dumpReversiblePath.Value())))
                 {
                     ConsoleEx.WriteError($"Dump Reverible output directory \"{Path.GetDirectoryName(dumpReversiblePath.Value())}\" does not exist.");
@@ -130,6 +137,11 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                     if (usersCsvPath.HasValue())
                     {
                         WriteUsersCsvFile(usersCsvPath.Value(), ntdsAudit, baseDateTime);
+                    }
+
+                    if (computersCsvPath.HasValue())
+                    {
+                        WriteComputersCsvFile(computersCsvPath.Value(), ntdsAudit, baseDateTime);
                     }
                 }
 
@@ -200,6 +212,19 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                 WriteStatistic("Active computers unused in 1 year", activeComputersUnusedIn1Year, activeComputersCount);
                 WriteStatistic("Active computers unused in 90 days", activeComputersUnusedIn90Days, activeComputersCount);
                 Console.WriteLine();
+            }
+        }
+
+        private static void WriteComputersCsvFile(string computersCsvPath, NtdsAudit ntdsAudit, DateTime baseDateTime)
+        {
+            using (var file = new StreamWriter(computersCsvPath, false))
+            {
+                file.WriteLine("Domain,Computer,Disabled,Last Logon");
+                foreach (var computer in ntdsAudit.Computers)
+                {
+                    var domain = ntdsAudit.Domains.Single(x => x.Sid == computer.DomainSid);
+                    file.WriteLine($"{domain.Fqdn},{computer.Name},{computer.Disabled},{computer.LastLogon}");
+                }
             }
         }
 
