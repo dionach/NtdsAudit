@@ -106,7 +106,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
 
                 if (dumpReversiblePath.HasValue() && !string.IsNullOrEmpty(Path.GetDirectoryName(dumpReversiblePath.Value())) && !Directory.Exists(Path.GetDirectoryName(dumpReversiblePath.Value())))
                 {
-                    ConsoleEx.WriteError($"Dump Reverible output directory \"{Path.GetDirectoryName(dumpReversiblePath.Value())}\" does not exist.");
+                    ConsoleEx.WriteError($"Dump Reversible output directory \"{Path.GetDirectoryName(dumpReversiblePath.Value())}\" does not exist.");
                     argumentsValid = false;
                 }
 
