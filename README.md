@@ -25,6 +25,7 @@ Password stats for: domain.local
 ```
 
 ### Usage
+NtdsAudit requires version 4.6 or newer of the .NET framework.
 
 ```
 Usage:  [arguments] [options]
