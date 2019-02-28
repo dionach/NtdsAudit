@@ -177,7 +177,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                 var activeUsersUnusedIn1Year = activeUsers.Count(x => x.LastLogon + TimeSpan.FromDays(365) < baseDateTime);
                 var activeUsersUnusedIn90Days = activeUsers.Count(x => x.LastLogon + TimeSpan.FromDays(90) < baseDateTime);
                 var activeUsersWithPasswordNotRequired = activeUsers.Count(x => x.PasswordNotRequired);
-                var activeUsersWithPasswordNeverExpires = activeUsers.Count(x => !x.PasswordNeverExpires);
+                var activeUsersWithPasswordNeverExpires = activeUsers.Count(x => x.PasswordNeverExpires);
                 var activeUsersPasswordUnchangedIn1Year = activeUsers.Count(x => x.PasswordLastChanged + TimeSpan.FromDays(365) < baseDateTime);
                 var activeUsersPasswordUnchangedIn90Days = activeUsers.Count(x => x.PasswordLastChanged + TimeSpan.FromDays(90) < baseDateTime);
 
