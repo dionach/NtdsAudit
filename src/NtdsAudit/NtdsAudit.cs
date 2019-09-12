@@ -24,6 +24,8 @@
         private readonly IReadOnlyDictionary<string, string> _ldapDisplayNameToDatatableColumnNameDictionary;
         private readonly LinkTableRow[] _linkTable;
         private readonly MSysObjectsRow[] _mSysObjects;
+        private readonly bool _useOUFilter;
+        private readonly IEnumerable<string> _ouFilter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NtdsAudit"/> class.
@@ -33,7 +35,7 @@
         /// <param name="includeHistoryHashes">A value indicating whether to include history hashes</param>
         /// <param name="systemHivePath">The path to the System hive.</param>
         /// <param name="wordlistPath">The path to a wordlist for simple hash cracking.</param>
-        public NtdsAudit(string ntdsPath, bool dumphashes, bool includeHistoryHashes, string systemHivePath, string wordlistPath)
+        public NtdsAudit(string ntdsPath, bool dumphashes, bool includeHistoryHashes, string systemHivePath, string wordlistPath, string ouFilterFilePath)
         {
             ntdsPath = ntdsPath ?? throw new ArgumentNullException(nameof(ntdsPath));
 
@@ -41,6 +43,12 @@
             if (!ShowDebugOutput)
             {
                 progress = new ProgressBar("Performing audit...");
+            }
+
+            if (!string.IsNullOrWhiteSpace(ouFilterFilePath))
+            {
+                _useOUFilter = true;
+                _ouFilter = File.ReadAllLines(ouFilterFilePath).Where(x => !string.IsNullOrWhiteSpace(x));
             }
 
             try
@@ -618,6 +626,12 @@
                         Disabled = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE) == (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE,
                         LastLogon = row.LastLogon ?? DateTime.Parse("01.01.1601 00:00:00", CultureInfo.InvariantCulture),
                     };
+
+                    if (_useOUFilter && !_ouFilter.Any(filterOU => computerInfo.Dn.EndsWith(filterOU)))
+                    {
+                        continue;
+                    }
+
                     computers.Add(computerInfo);
                 }
             }
@@ -898,32 +912,35 @@
             var users = new List<UserInfo>();
             foreach (var row in _datatable)
             {
-                if ((row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_NORMAL_ACCOUNT) == (int)ADS_USER_FLAG.ADS_UF_NORMAL_ACCOUNT)
+                if ((row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_NORMAL_ACCOUNT) == (int)ADS_USER_FLAG.ADS_UF_NORMAL_ACCOUNT && row.ObjectCategory.Equals("Person"))
                 {
-                    if (row.ObjectCategory.Equals("Person"))
+                    var userInfo = new UserInfo
                     {
-                        var userInfo = new UserInfo
-                        {
-                            Dnt = row.Dnt.Value,
-                            Name = row.Name,
-                            Dn = row.Dn,
-                            DomainSid = row.Sid.AccountDomainSid,
-                            Disabled = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE) == (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE,
-                            LastLogon = row.LastLogon ?? DateTime.Parse("01.01.1601 00:00:00", CultureInfo.InvariantCulture),
-                            PasswordNotRequired = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_PASSWD_NOTREQD) == (int)ADS_USER_FLAG.ADS_UF_PASSWD_NOTREQD,
-                            PasswordNeverExpires = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_DONT_EXPIRE_PASSWD) == (int)ADS_USER_FLAG.ADS_UF_DONT_EXPIRE_PASSWD,
-                            Expires = GetAccountExpiresDateTimeFromByteArray(row.AccountExpires),
-                            PasswordLastChanged = row.LastPasswordChange ?? DateTime.Parse("01.01.1601 00:00:00", CultureInfo.InvariantCulture),
-                            SamAccountName = row.SamAccountName,
-                            Rid = row.Rid,
-                            LmHash = row.LmHash,
-                            NtHash = row.NtHash,
-                            LmHistory = row.LmHistory,
-                            NtHistory = row.NtHistory,
-                            ClearTextPassword = row.SupplementalCredentials?.ContainsKey("Primary:CLEARTEXT") ?? false ? Encoding.Unicode.GetString(row.SupplementalCredentials["Primary:CLEARTEXT"]) : null
-                        };
-                        users.Add(userInfo);
+                        Dnt = row.Dnt.Value,
+                        Name = row.Name,
+                        Dn = row.Dn,
+                        DomainSid = row.Sid.AccountDomainSid,
+                        Disabled = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE) == (int)ADS_USER_FLAG.ADS_UF_ACCOUNTDISABLE,
+                        LastLogon = row.LastLogon ?? DateTime.Parse("01.01.1601 00:00:00", CultureInfo.InvariantCulture),
+                        PasswordNotRequired = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_PASSWD_NOTREQD) == (int)ADS_USER_FLAG.ADS_UF_PASSWD_NOTREQD,
+                        PasswordNeverExpires = (row.UserAccountControlValue & (int)ADS_USER_FLAG.ADS_UF_DONT_EXPIRE_PASSWD) == (int)ADS_USER_FLAG.ADS_UF_DONT_EXPIRE_PASSWD,
+                        Expires = GetAccountExpiresDateTimeFromByteArray(row.AccountExpires),
+                        PasswordLastChanged = row.LastPasswordChange ?? DateTime.Parse("01.01.1601 00:00:00", CultureInfo.InvariantCulture),
+                        SamAccountName = row.SamAccountName,
+                        Rid = row.Rid,
+                        LmHash = row.LmHash,
+                        NtHash = row.NtHash,
+                        LmHistory = row.LmHistory,
+                        NtHistory = row.NtHistory,
+                        ClearTextPassword = row.SupplementalCredentials?.ContainsKey("Primary:CLEARTEXT") ?? false ? Encoding.Unicode.GetString(row.SupplementalCredentials["Primary:CLEARTEXT"]) : null
+                    };
+
+                    if (_useOUFilter && !_ouFilter.Any(filterOU => userInfo.Dn.EndsWith(filterOU)))
+                    {
+                        continue;
                     }
+
+                    users.Add(userInfo);
                 }
             }
 

@@ -49,6 +49,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             var includeHistoryHashes = commandLineApplication.Option("--history-hashes", "Include history hashes in the pdwump output.", CommandOptionType.NoValue);
             var dumpReversiblePath = commandLineApplication.Option("--dump-reversible <file>", "The path to output clear text passwords, if reversible encryption is enabled.", CommandOptionType.SingleValue);
             var wordlistPath = commandLineApplication.Option("--wordlist", "The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.", CommandOptionType.SingleValue);
+            var ouFilterFilePath = commandLineApplication.Option("--ou-filter-file <file>", "The path to file containing a line separated list of OUs to which to limit user and computer results.", CommandOptionType.SingleValue);
             var baseDate = commandLineApplication.Option("--base-date <yyyyMMdd>", "Specifies a custom date to be used as the base date in statistics. The last modified date of the NTDS file is used by default.", CommandOptionType.SingleValue);
             var debug = commandLineApplication.Option("--debug", "Show debug output.", CommandOptionType.NoValue);
 
@@ -116,6 +117,12 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                     argumentsValid = false;
                 }
 
+                if (ouFilterFilePath.HasValue() && !File.Exists(ouFilterFilePath.Value()))
+                {
+                    ConsoleEx.WriteError($"OU filter file \"{ouFilterFilePath.Value()}\" does not exist.");
+                    argumentsValid = false;
+                }
+
                 if (showHelp)
                 {
                     commandLineApplication.ShowHelp();
@@ -123,7 +130,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
 
                 if (!showHelp && argumentsValid)
                 {
-                    var ntdsAudit = new NtdsAudit(ntdsPath.Value, pwdumpPath.HasValue(), includeHistoryHashes.HasValue(), systemHivePath.Value(), wordlistPath.Value());
+                    var ntdsAudit = new NtdsAudit(ntdsPath.Value, pwdumpPath.HasValue(), includeHistoryHashes.HasValue(), systemHivePath.Value(), wordlistPath.Value(), ouFilterFilePath.Value());
 
                     var baseDateTime = baseDate.HasValue() ? DateTime.ParseExact(baseDate.Value(), "yyyyMMdd", null, DateTimeStyles.AssumeUniversal) : new FileInfo(ntdsPath.Value).LastWriteTimeUtc;
 
@@ -219,11 +226,11 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
         {
             using (var file = new StreamWriter(computersCsvPath, false))
             {
-                file.WriteLine("Domain,Computer,Disabled,Last Logon");
+                file.WriteLine("Domain,Computer,Disabled,Last Logon,DN");
                 foreach (var computer in ntdsAudit.Computers)
                 {
                     var domain = ntdsAudit.Domains.Single(x => x.Sid == computer.DomainSid);
-                    file.WriteLine($"{domain.Fqdn},{computer.Name},{computer.Disabled},{computer.LastLogon}");
+                    file.WriteLine($"{domain.Fqdn},{computer.Name},{computer.Disabled},{computer.LastLogon},\"{computer.Dn}\"");
                 }
             }
         }
@@ -349,11 +356,11 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
         {
             using (var file = new StreamWriter(usersCsvPath, false))
             {
-                file.WriteLine("Domain,Username,Administrator,Domain Admin,Enterprise Admin,Disabled,Expired,Password Never Expires,Password Not Required,Password Last Changed,Last Logon");
+                file.WriteLine("Domain,Username,Administrator,Domain Admin,Enterprise Admin,Disabled,Expired,Password Never Expires,Password Not Required,Password Last Changed,Last Logon,DN");
                 foreach (var user in ntdsAudit.Users)
                 {
                     var domain = ntdsAudit.Domains.Single(x => x.Sid == user.DomainSid);
-                    file.WriteLine($"{domain.Fqdn},{user.SamAccountName},{user.RecursiveGroupSids.Contains(domain.AdministratorsSid)},{user.RecursiveGroupSids.Contains(domain.DomainAdminsSid)},{user.RecursiveGroupSids.Intersect(ntdsAudit.Domains.Select(x => x.EnterpriseAdminsSid)).Any()},{user.Disabled},{!user.Disabled && user.Expires.HasValue && user.Expires.Value < baseDateTime},{user.PasswordNeverExpires},{user.PasswordNotRequired},{user.PasswordLastChanged},{user.LastLogon}");
+                    file.WriteLine($"{domain.Fqdn},{user.SamAccountName},{user.RecursiveGroupSids.Contains(domain.AdministratorsSid)},{user.RecursiveGroupSids.Contains(domain.DomainAdminsSid)},{user.RecursiveGroupSids.Intersect(ntdsAudit.Domains.Select(x => x.EnterpriseAdminsSid)).Any()},{user.Disabled},{!user.Disabled && user.Expires.HasValue && user.Expires.Value < baseDateTime},{user.PasswordNeverExpires},{user.PasswordNotRequired},{user.PasswordLastChanged},{user.LastLogon},\"{user.Dn}\"");
                 }
             }
         }
