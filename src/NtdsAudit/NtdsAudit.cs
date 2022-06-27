@@ -566,7 +566,7 @@
             }
 
             var ticks = BitConverter.ToInt64(value, 0);
-            if (ticks == 0 || ticks == 9223372036854775807)
+            if (ticks == 0 || ticks == 9223372036854775807 || ticks == 9223372032559808511)
             {
                 return null;
             }
