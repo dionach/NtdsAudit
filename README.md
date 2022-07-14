@@ -34,16 +34,18 @@ Arguments:
   NTDS file  The path of the NTDS.dit database to be audited, required.
 
 Options:
-  -v | --version            Show version information
-  -h | --help               Show help information
-  -s | --system <file>      The path of the associated SYSTEM hive, required when using the pwdump option.
-  -p | --pwdump <file>      The path to output hashes in pwdump format.
-  -u | --users-csv <file>   The path to output user details in CSV format.
-  --history-hashes          Include history hashes in the pdwump output.
-  --dump-reversible <file>  The path to output clear text passwords, if reversible encryption is enabled.
-  --wordlist                The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.
-  --base-date <yyyyMMdd>    Specifies a custom date to be used as the base date in statistics. The last modified date of the NTDS file is used by default.
-  --debug                   Show debug output.
+  -v | --version               Show version information
+  -h | --help                  Show help information
+  -s | --system <file>         The path of the associated SYSTEM hive, required when using the pwdump option.
+  -p | --pwdump <file>         The path to output hashes in pwdump format.
+  -u | --users-csv <file>      The path to output user details in CSV format.
+  -c | --computers-csv <file>  The path to output computer details in CSV format.
+  --history-hashes             Include history hashes in the pdwump output.
+  --dump-reversible <file>     The path to output clear text passwords, if reversible encryption is enabled.
+  --wordlist                   The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.
+  --ou-filter-file <file>      The path to file containing a line separated list of OUs to which to limit user and computer results.
+  --base-date <yyyyMMdd>       Specifies a custom date to be used as the base date in statistics. The last modified date of the NTDS file is used by default.
+  --debug                      Show debug output.
 
 WARNING: Use of the --pwdump option will result in decryption of password hashes using the System Key.
 Sensitive information will be stored in memory and on disk. Ensure the pwdump file is handled appropriately
