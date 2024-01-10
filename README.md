@@ -45,10 +45,11 @@ Options:
   --wordlist                   The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.
   --ou-filter-file <file>      The path to file containing a line separated list of OUs to which to limit user and computer results.
   --base-date <yyyyMMdd>       Specifies a custom date to be used as the base date in statistics. The last modified date of the NTDS file is used by default.
+  --useRdn                     Refer to users via name attribute (RDN) rather than samAccountName attribute in outputs.
   --debug                      Show debug output.
 
 WARNING: Use of the --pwdump option will result in decryption of password hashes using the System Key.
-Sensitive information will be stored in memory and on disk. Ensure the pwdump file is handled appropriately
+Sensitive information will be stored in memory and on disk. Ensure the pwdump file is handled appropriately.
 ```
 
 For example, the following command will display statistics, output a file `pwdump.txt` containing password hashes, and output a file `users.csv` containing details for each user account.
