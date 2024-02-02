@@ -40,6 +40,7 @@ Options:
   -p | --pwdump <file>         The path to output hashes in pwdump format.
   -u | --users-csv <file>      The path to output user details in CSV format.
   -c | --computers-csv <file>  The path to output computer details in CSV format.
+  --anonymise                  Anonymise the pwdump and reversible passwords files.
   --history-hashes             Include history hashes in the pdwump output.
   --dump-reversible <file>     The path to output clear text passwords, if reversible encryption is enabled.
   --wordlist                   The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.

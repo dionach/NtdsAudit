@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Globalization;
     using System.IO;
+    using System.IO.MemoryMappedFiles;
     using System.Linq;
     using System.Reflection;
 
@@ -46,6 +47,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             var pwdumpPath = commandLineApplication.Option("-p | --pwdump <file>", "The path to output hashes in pwdump format.", CommandOptionType.SingleValue);
             var usersCsvPath = commandLineApplication.Option("-u | --users-csv <file>", "The path to output user details in CSV format.", CommandOptionType.SingleValue);
             var computersCsvPath = commandLineApplication.Option("-c | --computers-csv <file>", "The path to output computer details in CSV format.", CommandOptionType.SingleValue);
+            var anonymise = commandLineApplication.Option("--anonymise", "Anonymise the pwdump and reversible passwords files.", CommandOptionType.NoValue);
             var includeHistoryHashes = commandLineApplication.Option("--history-hashes", "Include history hashes in the pdwump output.", CommandOptionType.NoValue);
             var dumpReversiblePath = commandLineApplication.Option("--dump-reversible <file>", "The path to output clear text passwords, if reversible encryption is enabled.", CommandOptionType.SingleValue);
             var wordlistPath = commandLineApplication.Option("--wordlist", "The path to a wordlist of weak passwords for basic hash cracking. Warning, using this option is slow, the use of a dedicated password cracker, such as 'john', is recommended instead.", CommandOptionType.SingleValue);
@@ -139,7 +141,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
 
                     if (pwdumpPath.HasValue())
                     {
-                        WritePwDumpFile(pwdumpPath.Value(), ntdsAudit, baseDateTime, includeHistoryHashes.HasValue(), wordlistPath.HasValue(), dumpReversiblePath.Value(), useRdn.HasValue());
+                        WritePwDumpFile(pwdumpPath.Value(), ntdsAudit, baseDateTime, includeHistoryHashes.HasValue(), wordlistPath.HasValue(), dumpReversiblePath.Value(), useRdn.HasValue(), anonymise.HasValue());
                     }
 
                     if (usersCsvPath.HasValue())
@@ -236,7 +238,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             }
         }
 
-        private static void WritePwDumpFile(string pwdumpPath, NtdsAudit ntdsAudit, DateTime baseDateTime, bool includeHistoryHashes, bool wordlistInUse, string dumpReversiblePath, bool useRdn)
+        private static void WritePwDumpFile(string pwdumpPath, NtdsAudit ntdsAudit, DateTime baseDateTime, bool includeHistoryHashes, bool wordlistInUse, string dumpReversiblePath, bool useRdn, bool anonymise)
         {
             DomainInfo domain = null;
 
@@ -286,8 +288,32 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             // <username>:<uid>:<LM-hash>:<NTLM-hash>:<comment>:<homedir>:
             using (var file = new StreamWriter(pwdumpPath, false))
             {
+                StreamWriter mapFile = null;
+                if (anonymise)
+                {
+                    mapFile = new StreamWriter($"{pwdumpPath}.map", false);
+                }
+
+                var r = new Random((int)((DateTimeOffset)baseDateTime).ToUnixTimeSeconds());
                 for (var i = 0; i < users.Length; i++)
                 {
+                    string userId;
+
+                    if (anonymise)
+                    {
+                        var bytes = new byte[16];
+                        r.NextBytes(bytes);
+                        userId = new Guid(bytes).ToString();
+                    }
+                    else if (useRdn)
+                    {
+                        userId = users[i].Name;
+                    }
+                    else
+                    {
+                        userId = users[i].SamAccountName;
+                    }
+
                     var comments = $"Disabled={users[i].Disabled}," +
                         $"Expired={!users[i].Disabled && users[i].Expires.HasValue && users[i].Expires.Value < baseDateTime}," +
                         $"PasswordNeverExpires={users[i].PasswordNeverExpires}," +
@@ -298,7 +324,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                         $"IsDomainAdmin={users[i].RecursiveGroupSids.Contains(domain.DomainAdminsSid)}," +
                         $"IsEnterpriseAdmin={users[i].RecursiveGroupSids.Intersect(ntdsAudit.Domains.Select(x => x.EnterpriseAdminsSid)).Any()}";
                     var homeDir = string.Empty;
-                    file.Write($"{domain.Fqdn}\\{(useRdn ? users[i].Name : users[i].SamAccountName)}:{users[i].Rid}:{users[i].LmHash}:{users[i].NtHash}:{comments}:{homeDir}:");
+                    file.Write($"{(anonymise ? string.Empty : $"{domain.Fqdn}\\")}{userId}:{(anonymise ? i : users[i].Rid)}:{users[i].LmHash}:{users[i].NtHash}:{comments}:{homeDir}:");
 
                     if (includeHistoryHashes && users[i].NtHistory != null && users[i].NtHistory.Length > 0)
                     {
@@ -314,7 +340,7 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                         for (var j = 0; j < users[i].NtHistory.Length; j++)
                         {
                             var lmHash = (users[i].LmHistory?.Length > j) ? users[i].LmHistory[j] : NtdsAudit.EMPTY_LM_HASH;
-                            file.Write($"{domain.Fqdn}\\{(useRdn ? users[i].Name : users[i].SamAccountName)}__history_{j}:{users[i].Rid}:{lmHash}:{users[i].NtHistory[j]}:::");
+                            file.Write($"{(anonymise ? string.Empty : $"{domain.Fqdn}\\")}{userId}__history_{j}:{(anonymise ? i : users[i].Rid)}:{lmHash}:{users[i].NtHistory[j]}:::");
 
                             if (j < users[i].NtHistory.Length || i < users.Length - 1)
                             {
@@ -322,6 +348,17 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
                             }
                         }
                     }
+
+                    if (anonymise)
+                    {
+                        mapFile.Write($"{userId}:{domain.Fqdn}\\{(useRdn ? users[i].Name : users[i].SamAccountName)}");
+                        mapFile.Write(Environment.NewLine);
+                    }
+                }
+
+                if (anonymise)
+                {
+                    mapFile.Dispose();
                 }
             }
 
@@ -329,11 +366,29 @@ Sensitive information will be stored in memory and on disk. Ensure the pwdump fi
             {
                 using (var file = new StreamWriter(dumpReversiblePath, false))
                 {
+                    var r = new Random((int)((DateTimeOffset)baseDateTime).ToUnixTimeSeconds());
                     for (var i = 0; i < users.Length; i++)
                     {
+                        string userId;
+
+                        if (anonymise)
+                        {
+                            var bytes = new byte[16];
+                            r.NextBytes(bytes);
+                            userId = new Guid(bytes).ToString();
+                        }
+                        else if (useRdn)
+                        {
+                            userId = users[i].Name;
+                        }
+                        else
+                        {
+                            userId = users[i].SamAccountName;
+                        }
+
                         if (!string.IsNullOrEmpty(users[i].ClearTextPassword))
                         {
-                            file.Write($"{domain.Fqdn}\\{(useRdn ? users[i].Name : users[i].SamAccountName)}:{users[i].ClearTextPassword}");
+                            file.Write($"{domain.Fqdn}\\{userId}:{users[i].ClearTextPassword}");
 
                             if (i < users.Length - 1)
                             {
